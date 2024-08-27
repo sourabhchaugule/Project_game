@@ -1,0 +1,134 @@
+import pygame
+import random
+import time
+import torch
+import cv2
+
+# Initialize Pygame
+pygame.init()
+
+# Screen setup
+SCREEN = pygame.display.set_mode((500, 750))
+pygame.display.set_caption("Flappy Bird")
+
+# Load images
+BACKGROUND_IMAGE = pygame.image.load('background.jpg')
+BIRD_IMAGE = pygame.image.load('bird1.png')
+
+def display_bird(x, y):
+    SCREEN.blit(BIRD_IMAGE, (x, y))
+
+# Bird settings
+bird_x = 50
+bird_y = 300
+bird_y_change = 0
+BIRD_WIDTH = 64
+BIRD_HEIGHT = 64
+
+# Obstacle settings
+OBSTACLE_WIDTH = 70
+OBSTACLE_COLOR = (211, 253, 117)
+OBSTACLE_X_CHANGE = -2
+
+def create_obstacle():
+    height = random.randint(150, 450)
+    return height, 500  # Initial x position of obstacle
+
+def display_obstacle(height, x):
+    pygame.draw.rect(SCREEN, OBSTACLE_COLOR, (x, 0, OBSTACLE_WIDTH, height))
+    bottom_obstacle_height = 635 - height - 150
+    pygame.draw.rect(SCREEN, OBSTACLE_COLOR, (x, 635 - bottom_obstacle_height, OBSTACLE_WIDTH, bottom_obstacle_height))
+
+def collision_detection(obstacle_x, obstacle_height, bird_y):
+    if obstacle_x < bird_x + BIRD_WIDTH and obstacle_x + OBSTACLE_WIDTH > bird_x:
+        if bird_y < obstacle_height or bird_y + BIRD_HEIGHT > 635 - (635 - obstacle_height - 150):
+            return True
+    return False
+
+# Score settings
+score = 0
+SCORE_FONT = pygame.font.Font('freesansbold.ttf', 32)
+
+def score_display(score):
+    display = SCORE_FONT.render(f"Score: {score}", True, (255, 255, 255))
+    SCREEN.blit(display, (10, 10))
+
+startFont = pygame.font.Font('freesansbold.ttf', 32)
+def start():
+    display = startFont.render(f"PRESS SPACE BAR TO START", True, (255, 255, 255))
+    SCREEN.blit(display, (20, 200))
+    pygame.display.update()
+
+# Game Over screen
+score_list = [0]
+game_over_font1 = pygame.font.Font('freesansbold.ttf', 64)
+game_over_font2 = pygame.font.Font('freesansbold.ttf', 32)
+
+def game_over():
+    maximum = max(score_list)
+    display1 = game_over_font1.render(f"GAME OVER", True, (200, 35, 35))
+    SCREEN.blit(display1, (50, 300))
+    display2 = game_over_font2.render(f"SCORE: {score} MAX SCORE: {maximum}", True, (255, 255, 255))
+    SCREEN.blit(display2, (50, 400))
+    if score == maximum:
+        display3 = game_over_font2.render(f"NEW HIGH SCORE!!", True, (200, 35, 35))
+        SCREEN.blit(display3, (80, 100))
+
+def capture_emotion():
+    # Placeholder for emotion capture logic
+    # Implement emotion detection using OpenCV and PyTorch here
+    # Return the detected emotion
+    return None
+
+# Game loop
+running = True
+waiting = True
+collision = False
+obstacle_height, obstacle_x = create_obstacle()
+
+while running:
+    SCREEN.fill((0, 0, 0))
+    SCREEN.blit(BACKGROUND_IMAGE, (0, 0))
+
+    # Capture and classify emotion
+    emotion = capture_emotion()
+    if emotion is not None:
+        print(f"Detected Emotion: {emotion}")
+
+    while waiting:
+        if collision:
+            game_over()
+        else:
+            start()
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    waiting = False
+                    collision = False
+                    bird_y_change = 0
+                    bird_y = 300
+                    score = 0
+                    obstacle_height, obstacle_x = create_obstacle()
+                    score_list.append(score)
+
+    if not waiting:
+        bird_y_change += 0.5
+        bird_y += bird_y_change
+
+        obstacle_x += OBSTACLE_X_CHANGE
+        if obstacle_x < -OBSTACLE_WIDTH:
+            obstacle_height, obstacle_x = create_obstacle()
+            score += 1
+            score_list.append(score)
+
+        if collision_detection(obstacle_x, obstacle_height, bird_y):
+            collision = True
+            waiting = True
+
+        display_bird(bird_x, bird_y)
+        display_obstacle(obstacle_height, obstacle_x)
+        score_display(score)
+
+    pygame.display.update()
+    time.sleep(0.02)
